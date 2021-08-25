@@ -1,4 +1,9 @@
+@import "~leaflet/dist/leaflet.css";
+
 .Layout {
-  display: flex;
-  flex-direction: column;
+}
+
+.Map {
+  height: 50vh;
+  border: 2px solid red;
 }
