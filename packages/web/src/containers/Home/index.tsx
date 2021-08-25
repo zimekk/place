@@ -1,8 +1,57 @@
-import React, { useEffect } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import cx from "classnames";
 import styles from "./styles.module.scss";
+
+const center = {
+  lat: 52.1724,
+  lng: 21.0549,
+};
+
+function DraggableMarker() {
+  const [draggable, setDraggable] = useState(false);
+  const [position, setPosition] = useState(center);
+  const markerRef = useRef(null);
+  const eventHandlers = useMemo(
+    () => ({
+      dragend() {
+        const marker = markerRef.current;
+        if (marker != null) {
+          setPosition(marker.getLatLng());
+          console.log(marker.getLatLng());
+        }
+      },
+    }),
+    []
+  );
+  const toggleDraggable = useCallback(() => {
+    setDraggable((d) => !d);
+  }, []);
+
+  return (
+    <Marker
+      draggable={draggable}
+      eventHandlers={eventHandlers}
+      position={position}
+      ref={markerRef}
+    >
+      <Popup minWidth={90}>
+        <span onClick={toggleDraggable}>
+          {draggable
+            ? "Marker is draggable"
+            : "Click here to make marker draggable"}
+        </span>
+      </Popup>
+    </Marker>
+  );
+}
 
 export default function Home() {
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
@@ -18,20 +67,12 @@ export default function Home() {
   return (
     <div className={cx(styles.Layout)}>
       <h2>Home</h2>
-      <MapContainer
-        center={[51.505, -0.09]}
-        zoom={13}
-        className={cx(styles.Map)}
-      >
+      <MapContainer center={center} zoom={13} className={cx(styles.Map)}>
         <TileLayer
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Marker position={[51.505, -0.09]}>
-          <Popup>
-            A pretty CSS3 popup. <br /> Easily customizable.
-          </Popup>
-        </Marker>
+        <DraggableMarker />
       </MapContainer>
     </div>
   );
