@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import qrcode from "qrcode";
 import cx from "classnames";
 import styles from "./styles.module.scss";
 
@@ -14,6 +15,20 @@ const center = {
   lat: 52.1724,
   lng: 21.0549,
 };
+
+function Link({children}) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+qrcode.toCanvas(canvasRef.current, children, function (error) {
+  if (error) {console.error(error)}
+})
+  })
+
+  return (
+    <div><a href={children} target="_blank" style={{ textDecoration: 'none'}}><canvas ref={canvasRef} width="100" height="100"></canvas></a></div>
+  )
+}
 
 function DraggableMarker() {
   const [draggable, setDraggable] = useState(false);
@@ -43,12 +58,15 @@ function DraggableMarker() {
       ref={markerRef}
     >
       <Popup minWidth={90}>
+      {(({lat,lng}) => (
         <span onClick={toggleDraggable}>
           {draggable
             ? "Marker is draggable"
             : "Click here to make marker draggable"}
+            <Link>{`https://maps.google.com/?ll=${lat},${lng}`}</Link>
         </span>
-      </Popup>
+            ))(position)}
+            </Popup>
     </Marker>
   );
 }
