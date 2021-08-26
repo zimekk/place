@@ -16,6 +16,16 @@ const center = {
   lng: 21.0549,
 };
 
+const getUrl = ({ lat, lng }) => `https://maps.google.com/?ll=${lat},${lng}`;
+
+function Editor({ children, onChange }) {
+  return (
+    <div className={cx(styles.Editor)}>
+      <textarea value={children} onChange={(e) => onChange(e.target.value)} />
+    </div>
+  );
+}
+
 function Link({ children }) {
   const canvasRef = useRef(null);
 
@@ -36,9 +46,8 @@ function Link({ children }) {
   );
 }
 
-function DraggableMarker() {
-  const [draggable, setDraggable] = useState(false);
-  const [position, setPosition] = useState(center);
+function DraggableMarker({ position: p, children }) {
+  const [position, setPosition] = useState(p);
   const markerRef = useRef(null);
   const eventHandlers = useMemo(
     () => ({
@@ -51,32 +60,30 @@ function DraggableMarker() {
     }),
     []
   );
-  const toggleDraggable = useCallback(() => {
-    setDraggable((d) => !d);
-  }, []);
+
+  console.log({ position });
 
   return (
     <Marker
-      draggable={draggable}
+      draggable
       eventHandlers={eventHandlers}
-      position={position}
+      position={p}
       ref={markerRef}
     >
       <Popup minWidth={90}>
-        {(({ lat, lng }) => (
-          <span onClick={toggleDraggable}>
-            {draggable
-              ? "Marker is draggable"
-              : "Click here to make marker draggable"}
-            <Link>{`https://maps.google.com/?ll=${lat},${lng}`}</Link>
-          </span>
-        ))(position)}
+        <span>
+          {children}
+          <Link>{getUrl(position)}</Link>
+        </span>
       </Popup>
     </Marker>
   );
 }
 
 export default function Home() {
+  const [text, setText] = useState(() =>
+    ["Aleja Wilanowska@52.1724,21.0549", "Chmielna@52.2280,20.9954"].join("\n")
+  );
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
   useEffect(() => {
     delete L.Icon.Default.prototype._getIconUrl;
@@ -86,6 +93,16 @@ export default function Home() {
       shadowUrl: require("leaflet/dist/images/marker-shadow.png").default,
     });
   }, []);
+  const list = useMemo(
+    () =>
+      text
+        .split("\n")
+        .map((line) => line.match(/^(.*)@([0-9.]*),([0-9.]*)$/))
+        .filter(Boolean)
+        .map(([_, name, lat, lng]) => ({ position: { lat, lng }, name })),
+    [text]
+  );
+
   // https://react-leaflet.js.org/docs/start-setup/
   return (
     <div className={cx(styles.Layout)}>
@@ -95,8 +112,13 @@ export default function Home() {
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <DraggableMarker />
+        {list.map(({ position, name }, key) => (
+          <DraggableMarker key={key} position={position}>
+            {name}
+          </DraggableMarker>
+        ))}
       </MapContainer>
+      <Editor onChange={setText}>{text}</Editor>
     </div>
   );
 }
