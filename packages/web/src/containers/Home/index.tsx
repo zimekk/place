@@ -16,18 +16,24 @@ const center = {
   lng: 21.0549,
 };
 
-function Link({children}) {
-  const canvasRef = useRef(null)
+function Link({ children }) {
+  const canvasRef = useRef(null);
 
   useEffect(() => {
-qrcode.toCanvas(canvasRef.current, children, function (error) {
-  if (error) {console.error(error)}
-})
-  })
+    qrcode.toCanvas(canvasRef.current, children, function (error) {
+      if (error) {
+        console.error(error);
+      }
+    });
+  });
 
   return (
-    <div><a href={children} target="_blank" style={{ textDecoration: 'none'}}><canvas ref={canvasRef} width="100" height="100"></canvas></a></div>
-  )
+    <div>
+      <a href={children} target="_blank" style={{ textDecoration: "none" }}>
+        <canvas ref={canvasRef} width="100" height="100"></canvas>
+      </a>
+    </div>
+  );
 }
 
 function DraggableMarker() {
@@ -40,7 +46,6 @@ function DraggableMarker() {
         const marker = markerRef.current;
         if (marker != null) {
           setPosition(marker.getLatLng());
-          console.log(marker.getLatLng());
         }
       },
     }),
@@ -58,15 +63,15 @@ function DraggableMarker() {
       ref={markerRef}
     >
       <Popup minWidth={90}>
-      {(({lat,lng}) => (
-        <span onClick={toggleDraggable}>
-          {draggable
-            ? "Marker is draggable"
-            : "Click here to make marker draggable"}
+        {(({ lat, lng }) => (
+          <span onClick={toggleDraggable}>
+            {draggable
+              ? "Marker is draggable"
+              : "Click here to make marker draggable"}
             <Link>{`https://maps.google.com/?ll=${lat},${lng}`}</Link>
-        </span>
-            ))(position)}
-            </Popup>
+          </span>
+        ))(position)}
+      </Popup>
     </Marker>
   );
 }
