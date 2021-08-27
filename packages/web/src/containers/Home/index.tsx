@@ -46,8 +46,7 @@ function Link({ children }) {
   );
 }
 
-function DraggableMarker({ position: p, children }) {
-  const [position, setPosition] = useState(p);
+function DraggableMarker({ position, children, setPosition }) {
   const markerRef = useRef(null);
   const eventHandlers = useMemo(
     () => ({
@@ -67,7 +66,7 @@ function DraggableMarker({ position: p, children }) {
     <Marker
       draggable
       eventHandlers={eventHandlers}
-      position={p}
+      position={position}
       ref={markerRef}
     >
       <Popup minWidth={90}>
@@ -79,6 +78,16 @@ function DraggableMarker({ position: p, children }) {
     </Marker>
   );
 }
+
+const parseLine = (line, i) =>
+  ((item) =>
+    item
+      ? (([_, name, lat, lng]) => ({
+          i,
+          position: { lat, lng },
+          name,
+        }))(item)
+      : null)(line.match(/^(.*)@([0-9.]*),([0-9.]*)$/));
 
 export default function Home() {
   const [text, setText] = useState(() =>
@@ -97,9 +106,24 @@ export default function Home() {
     () =>
       text
         .split("\n")
-        .map((line) => line.match(/^(.*)@([0-9.]*),([0-9.]*)$/))
+        .map(parseLine)
         .filter(Boolean)
-        .map(([_, name, lat, lng]) => ({ position: { lat, lng }, name })),
+        .map(({ i, name, position }) => ({
+          i,
+          name,
+          position,
+          setPosition: ({ lat, lng }) =>
+            setText((text) =>
+              text
+                .split("\n")
+                .map((line, index) =>
+                  i === index
+                    ? (({ name }) => `${name}@${lat},${lng}`)(parseLine(line))
+                    : line
+                )
+                .join("\n")
+            ),
+        })),
     [text]
   );
 
@@ -112,8 +136,12 @@ export default function Home() {
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {list.map(({ position, name }, key) => (
-          <DraggableMarker key={key} position={position}>
+        {list.map(({ i, position, name, setPosition }) => (
+          <DraggableMarker
+            key={i}
+            position={position}
+            setPosition={setPosition}
+          >
             {name}
           </DraggableMarker>
         ))}
