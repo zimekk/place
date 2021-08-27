@@ -22,15 +22,15 @@ const getUrl = ({ lat, lng }) =>
 const parseLine = (line, i) =>
   ((item) =>
     item
-      ? (([_, name, lat, lng]) => ({
+      ? (([_, lat, lng, name]) => ({
           i,
           position: { lat, lng },
           name,
         }))(item)
-      : null)(line.match(/^(.*)@([0-9.]*),([0-9.]*)$/));
+      : null)(line.match(/^([0-9.]*),([0-9.]*)\|(.*)$/));
 
 const stringifyLine = ({ name, lat, lng }) =>
-  `${name}@${lat.toFixed(4)},${lng.toFixed(4)}`;
+  `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
 
 function Editor({ children, onChange }) {
   return (
@@ -39,6 +39,17 @@ function Editor({ children, onChange }) {
     </div>
   );
 }
+
+const loadText = () =>
+  (([_path, hash]) => {
+    try {
+      return atob(hash);
+    } catch (e) {
+      return "";
+    }
+  })(decodeURI(location.hash).match(/^#(.+)/) || []);
+
+const saveText = (text) => document.location.replace(`#${btoa(text)}`);
 
 function Link({ children }) {
   const canvasRef = useRef(null);
@@ -92,20 +103,23 @@ function DraggableMarker({ position, children, setPosition }) {
 }
 
 export default function Home() {
-  const [text, setText] = useState(() =>
-    [
-      stringifyLine({
-        name: "Aleja Wilanowska",
-        lat: 52.1724,
-        lng: 21.0549,
-      }),
-      stringifyLine({
-        name: "Chmielna",
-        lat: 52.228,
-        lng: 20.9954,
-      }),
-    ].join("\n")
+  const [text, setText] = useState(
+    () =>
+      loadText() ||
+      [
+        stringifyLine({
+          name: "Aleja Wilanowska",
+          lat: 52.1724,
+          lng: 21.0549,
+        }),
+        stringifyLine({
+          name: "Chmielna",
+          lat: 52.228,
+          lng: 20.9954,
+        }),
+      ].join("\n")
   );
+
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
   useEffect(() => {
     delete L.Icon.Default.prototype._getIconUrl;
@@ -115,6 +129,9 @@ export default function Home() {
       shadowUrl: require("leaflet/dist/images/marker-shadow.png").default,
     });
   }, []);
+
+  useEffect(() => saveText(text), [text]);
+
   const list = useMemo(
     () =>
       text
