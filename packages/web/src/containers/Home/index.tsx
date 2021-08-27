@@ -16,7 +16,21 @@ const center = {
   lng: 21.0549,
 };
 
-const getUrl = ({ lat, lng }) => `https://maps.google.com/?ll=${lat},${lng}`;
+const getUrl = ({ lat, lng }) =>
+  `https://google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+const parseLine = (line, i) =>
+  ((item) =>
+    item
+      ? (([_, name, lat, lng]) => ({
+          i,
+          position: { lat, lng },
+          name,
+        }))(item)
+      : null)(line.match(/^(.*)@([0-9.]*),([0-9.]*)$/));
+
+const stringifyLine = ({ name, lat, lng }) =>
+  `${name}@${lat.toFixed(4)},${lng.toFixed(4)}`;
 
 function Editor({ children, onChange }) {
   return (
@@ -60,8 +74,6 @@ function DraggableMarker({ position, children, setPosition }) {
     []
   );
 
-  console.log({ position });
-
   return (
     <Marker
       draggable
@@ -79,19 +91,20 @@ function DraggableMarker({ position, children, setPosition }) {
   );
 }
 
-const parseLine = (line, i) =>
-  ((item) =>
-    item
-      ? (([_, name, lat, lng]) => ({
-          i,
-          position: { lat, lng },
-          name,
-        }))(item)
-      : null)(line.match(/^(.*)@([0-9.]*),([0-9.]*)$/));
-
 export default function Home() {
   const [text, setText] = useState(() =>
-    ["Aleja Wilanowska@52.1724,21.0549", "Chmielna@52.2280,20.9954"].join("\n")
+    [
+      stringifyLine({
+        name: "Aleja Wilanowska",
+        lat: 52.1724,
+        lng: 21.0549,
+      }),
+      stringifyLine({
+        name: "Chmielna",
+        lat: 52.228,
+        lng: 20.9954,
+      }),
+    ].join("\n")
   );
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
   useEffect(() => {
@@ -118,7 +131,9 @@ export default function Home() {
                 .split("\n")
                 .map((line, index) =>
                   i === index
-                    ? (({ name }) => `${name}@${lat},${lng}`)(parseLine(line))
+                    ? (({ name }) => stringifyLine({ name, lat, lng }))(
+                        parseLine(line)
+                      )
                     : line
                 )
                 .join("\n")
