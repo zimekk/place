@@ -43,13 +43,14 @@ function Editor({ children, onChange }) {
 const loadText = () =>
   (([_path, hash]) => {
     try {
-      return atob(hash);
+      return decodeURIComponent(escape(atob(hash)));
     } catch (e) {
       return "";
     }
   })(decodeURI(location.hash).match(/^#(.+)/) || []);
 
-const saveText = (text) => document.location.replace(`#${btoa(text)}`);
+const saveText = (text) =>
+  document.location.replace(`#${btoa(unescape(encodeURIComponent(text)))}`);
 
 function Link({ children }) {
   const canvasRef = useRef(null);
