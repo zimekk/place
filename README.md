@@ -5,4 +5,4 @@
 ## features
 
 - [x] fit bounds
-- [ ] markdown syntax
+- [x] markdown syntax

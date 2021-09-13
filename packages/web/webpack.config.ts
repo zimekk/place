@@ -57,9 +57,11 @@ const config = {
       events: "events",
       "react-dom": "@hot-loader/react-dom",
     },
+    // https://webpack.js.org/configuration/resolve/#resolvefallback
     fallback: {
-      buffer: require.resolve("buffer"),
-      stream: require.resolve("stream-browserify"),
+      assert: false,
+      fs: false,
+      path: require.resolve("path-browserify"),
     },
   },
   output: {
@@ -69,25 +71,11 @@ const config = {
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
     new webpack.EnvironmentPlugin({
-      // FFMPEG_CORE_PATH: "ffmpeg/ffmpeg-core.js",
       NODE_ENV: "development",
     }),
     new webpack.ProvidePlugin({
-      Buffer: ["buffer", "Buffer"],
+      process: "process/browser",
     }),
-    // new CopyWebpackPlugin({
-    //   patterns: [
-    //     "ffmpeg-core.js",
-    //     "ffmpeg-core.wasm",
-    //     "ffmpeg-core.worker.js",
-    //   ].map((fileName: string) => ({
-    //     from: path.join(
-    //       path.dirname(require.resolve("@ffmpeg/core")),
-    //       fileName
-    //     ),
-    //     to: "ffmpeg",
-    //   })),
-    // }),
     new HtmlWebpackPlugin({
       favicon: require.resolve("./src/assets/favicon.ico"),
     }),

@@ -1,14 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MDXProvider } from "@mdx-js/react";
+import MDX from "@mdx-js/runtime";
 import qrcode from "qrcode";
 import cx from "classnames";
 import styles from "./styles.module.scss";
-
-const center = {
-  lat: 52.1724,
-  lng: 21.0549,
-};
 
 const getUrl = ({ lat, lng }) =>
   `https://google.com/maps/dir/?api=1&destination=${lat},${lng}`;
@@ -31,6 +28,20 @@ function Editor({ children, onChange }) {
     <div className={cx(styles.Editor)}>
       <textarea value={children} onChange={(e) => onChange(e.target.value)} />
     </div>
+  );
+}
+
+function Text({ children }) {
+  return (
+    <MDXProvider
+      components={{
+        a: ({ ...props }) => (
+          <a {...props} target="_blank" rel="noopener noreferrer" />
+        ),
+      }}
+    >
+      <MDX>{children}</MDX>
+    </MDXProvider>
   );
 }
 
@@ -89,7 +100,7 @@ function DraggableMarker({ position, children, setPosition }) {
     >
       <Popup minWidth={90}>
         <span>
-          {children}
+          <Text>{children}</Text>
           <Link>{getUrl(position)}</Link>
         </span>
       </Popup>
@@ -157,10 +168,7 @@ export default function Home() {
   const bounds = useMemo(
     () =>
       L.featureGroup(
-        list.map(
-          ({ position: { lat, lng } }) =>
-            console.log({ lat, lng }) || L.marker([lat, lng])
-        )
+        list.map(({ position: { lat, lng } }) => L.marker([lat, lng]))
       ).getBounds(),
     []
   );
