@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import qrcode from "qrcode";
@@ -160,11 +154,22 @@ export default function Home() {
     [text]
   );
 
+  const bounds = useMemo(
+    () =>
+      L.featureGroup(
+        list.map(
+          ({ position: { lat, lng } }) =>
+            console.log({ lat, lng }) || L.marker([lat, lng])
+        )
+      ).getBounds(),
+    []
+  );
+
   // https://react-leaflet.js.org/docs/start-setup/
   return (
     <div className={cx(styles.Layout)}>
       <h2>Home</h2>
-      <MapContainer center={center} zoom={13} className={cx(styles.Map)}>
+      <MapContainer bounds={bounds} zoom={13} className={cx(styles.Map)}>
         <TileLayer
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
