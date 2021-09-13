@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  Component,
+  Fragment,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { MDXProvider } from "@mdx-js/react";
@@ -31,17 +38,47 @@ function Editor({ children, onChange }) {
   );
 }
 
-function Text({ children }) {
+// https://github.com/jxnblk/ok-mdx/blob/master/lib/App.js#L20
+// https://pl.reactjs.org/docs/error-boundaries.html
+class ErrorBoundary extends Component {
+  state = {
+    error: null,
+  };
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  // componentDidCatch(error, errorInfo) {
+  //   logErrorToMyService(error, errorInfo);
+  // }
+
+  render() {
+    const { error } = this.state;
+    if (error) {
+      return <pre className={cx(styles.Error)} children={error.toString()} />;
+    }
+    try {
+      return <Fragment>{this.props.children}</Fragment>;
+    } catch (e) {
+      return false;
+    }
+  }
+}
+
+function Text({ children }: { children: string }) {
   return (
-    <MDXProvider
-      components={{
-        a: ({ ...props }) => (
-          <a {...props} target="_blank" rel="noopener noreferrer" />
-        ),
-      }}
-    >
-      <MDX>{children}</MDX>
-    </MDXProvider>
+    <ErrorBoundary>
+      <MDXProvider
+        components={{
+          a: ({ ...props }) => (
+            <a {...props} target="_blank" rel="noopener noreferrer" />
+          ),
+        }}
+      >
+        <MDX>{children}</MDX>
+      </MDXProvider>
+    </ErrorBoundary>
   );
 }
 
