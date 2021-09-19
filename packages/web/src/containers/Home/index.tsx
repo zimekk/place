@@ -1,6 +1,7 @@
 import React, {
   Component,
   Fragment,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -145,6 +146,36 @@ function DraggableMarker({ position, children, setPosition }) {
   );
 }
 
+function DisplayPosition({ map }) {
+  const [initial] = useState(() => ({
+    position: map.getCenter(),
+    zoom: map.getZoom(),
+  }));
+  const [position, setPosition] = useState(map.getCenter());
+
+  const onClick = useCallback(() => {
+    map.setView(initial.position, initial.zoom);
+  }, [map]);
+
+  const onMove = useCallback(() => {
+    setPosition(map.getCenter());
+  }, [map]);
+
+  useEffect(() => {
+    map.on("move", onMove);
+    return () => {
+      map.off("move", onMove);
+    };
+  }, [map, onMove]);
+
+  return (
+    <div className={cx(styles.DisplayPosition)}>
+      latitude: {position.lat.toFixed(4)}, longitude: {position.lng.toFixed(4)}{" "}
+      <button onClick={onClick}>reset</button>
+    </div>
+  );
+}
+
 export default function Home() {
   const [text, setText] = useState(
     () =>
@@ -210,11 +241,16 @@ export default function Home() {
     []
   );
 
-  // https://react-leaflet.js.org/docs/start-setup/
-  return (
-    <div className={cx(styles.Layout)}>
-      <h2>Home</h2>
-      <MapContainer bounds={bounds} zoom={13} className={cx(styles.Map)}>
+  const [map, setMap] = useState(null);
+
+  const displayMap = useMemo(
+    () => (
+      <MapContainer
+        bounds={bounds}
+        whenCreated={setMap}
+        zoom={13}
+        className={cx(styles.Map)}
+      >
         <TileLayer
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -229,6 +265,16 @@ export default function Home() {
           </DraggableMarker>
         ))}
       </MapContainer>
+    ),
+    [list]
+  );
+
+  // https://react-leaflet.js.org/docs/start-setup/
+  return (
+    <div className={cx(styles.Layout)}>
+      <h2>Home</h2>
+      {map ? <DisplayPosition map={map} /> : null}
+      {displayMap}
       <Editor onChange={setText}>{text}</Editor>
     </div>
   );
