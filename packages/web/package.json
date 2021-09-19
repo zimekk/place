@@ -9,6 +9,9 @@
     "start": "NODE_ENV=development webpack serve --mode development"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.36",
+    "@fortawesome/free-solid-svg-icons": "^5.15.4",
+    "@fortawesome/react-fontawesome": "^0.1.15",
     "@mdx-js/react": "^1.6.22",
     "@mdx-js/runtime": "^1.6.22",
     "buffer": "^6.0.3",

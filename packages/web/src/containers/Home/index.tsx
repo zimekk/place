@@ -8,7 +8,9 @@ import React, {
   useState,
 } from "react";
 import L from "leaflet";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCrosshairs } from "@fortawesome/free-solid-svg-icons";
 import { MDXProvider } from "@mdx-js/react";
 import MDX from "@mdx-js/runtime";
 import qrcode from "qrcode";
@@ -146,6 +148,35 @@ function DraggableMarker({ position, children, setPosition }) {
   );
 }
 
+function LocateControl() {
+  const map = useMap();
+
+  const onLocate = useCallback(
+    (event) => {
+      event.preventDefault();
+      map.locate({
+        setView: true,
+      });
+    },
+    [map]
+  );
+
+  return (
+    <div className="leaflet-top leaflet-left" style={{ top: 80, fontSize: 16 }}>
+      <div className="leaflet-control-locate leaflet-bar leaflet-control">
+        <a
+          className="leaflet-bar-part leaflet-bar-part-single"
+          title="Locate"
+          href="#"
+          onClick={onLocate}
+        >
+          <FontAwesomeIcon icon={faCrosshairs} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function DisplayPosition({ map }) {
   const [initial] = useState(() => ({
     position: map.getCenter(),
@@ -161,17 +192,31 @@ function DisplayPosition({ map }) {
     setPosition(map.getCenter());
   }, [map]);
 
+  const onLocationFound = useCallback((event) => {
+    const { latlng, radius } = event;
+    console.log({ latlng, radius });
+  }, []);
+
   useEffect(() => {
-    map.on("move", onMove);
+    map.on("locationfound", onLocationFound).on("move", onMove);
     return () => {
-      map.off("move", onMove);
+      map.off("locationfound", onLocationFound).off("move", onMove);
     };
   }, [map, onMove]);
 
   return (
     <div className={cx(styles.DisplayPosition)}>
       latitude: {position.lat.toFixed(4)}, longitude: {position.lng.toFixed(4)}{" "}
-      <button onClick={onClick}>reset</button>
+      <button onClick={onClick}>Reset</button>
+      <button
+        onClick={() =>
+          map.locate({
+            setView: true,
+          })
+        }
+      >
+        Locate
+      </button>
     </div>
   );
 }
@@ -264,6 +309,7 @@ export default function Home() {
             {name}
           </DraggableMarker>
         ))}
+        <LocateControl />
       </MapContainer>
     ),
     [list]
