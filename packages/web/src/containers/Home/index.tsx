@@ -11,6 +11,7 @@ import L from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCrosshairs } from "@fortawesome/free-solid-svg-icons";
+import { faMapMarkerAlt } from "@fortawesome/free-solid-svg-icons";
 import { MDXProvider } from "@mdx-js/react";
 import MDX from "@mdx-js/runtime";
 import qrcode from "qrcode";
@@ -177,6 +178,33 @@ function LocateControl() {
   );
 }
 
+function MarkerControl({ onAddMarker }: { onAddMarker: Function }) {
+  const map = useMap();
+
+  const onClick = useCallback(
+    (event) => {
+      event.preventDefault();
+      onAddMarker(map.getCenter());
+    },
+    [map]
+  );
+
+  return (
+    <div className="leaflet-top leaflet-right" style={{ fontSize: 16 }}>
+      <div className="leaflet-control-locate leaflet-bar leaflet-control">
+        <a
+          className="leaflet-bar-part leaflet-bar-part-single"
+          title="Locate"
+          href="#"
+          onClick={onClick}
+        >
+          <FontAwesomeIcon icon={faMapMarkerAlt} />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function DisplayPosition({ map }) {
   const [initial] = useState(() => ({
     position: map.getCenter(),
@@ -288,6 +316,21 @@ export default function Home() {
 
   const [map, setMap] = useState(null);
 
+  const onAddMarker = useCallback(
+    ({ lat, lng }) => {
+      setText((text) =>
+        stringifyLine({
+          name: `lat: ${lat}, lng: ${lng}`,
+          lat,
+          lng,
+        })
+          .concat("\n")
+          .concat(text)
+      );
+    },
+    [map]
+  );
+
   const displayMap = useMemo(
     () => (
       <MapContainer
@@ -310,6 +353,7 @@ export default function Home() {
           </DraggableMarker>
         ))}
         <LocateControl />
+        <MarkerControl onAddMarker={onAddMarker} />
       </MapContainer>
     ),
     [list]
