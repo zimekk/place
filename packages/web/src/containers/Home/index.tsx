@@ -1,6 +1,7 @@
 import React, {
   Component,
   Fragment,
+  forwardRef,
   useCallback,
   useEffect,
   useMemo,
@@ -34,13 +35,15 @@ const parseLine = (line, i) =>
 const stringifyLine = ({ name, lat, lng }) =>
   `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
 
-function Editor({ children, onChange }) {
-  return (
-    <div className={cx(styles.Editor)}>
-      <textarea value={children} onChange={(e) => onChange(e.target.value)} />
-    </div>
-  );
-}
+const Editor = forwardRef(({ children, onChange }, ref) => (
+  <div className={cx(styles.Editor)}>
+    <textarea
+      ref={ref}
+      value={children}
+      onChange={(e) => onChange(e.target.value)}
+    />
+  </div>
+));
 
 // https://github.com/jxnblk/ok-mdx/blob/master/lib/App.js#L20
 // https://pl.reactjs.org/docs/error-boundaries.html
@@ -118,7 +121,7 @@ function Link({ children }) {
   );
 }
 
-function DraggableMarker({ position, children, setPosition }) {
+function DraggableMarker({ position, children, onOpen, setPosition }) {
   const markerRef = useRef(null);
   const eventHandlers = useMemo(
     () => ({
@@ -139,7 +142,7 @@ function DraggableMarker({ position, children, setPosition }) {
       position={position}
       ref={markerRef}
     >
-      <Popup minWidth={90}>
+      <Popup minWidth={90} onOpen={onOpen}>
         <span>
           <Text>{children}</Text>
           <Link>{getUrl(position)}</Link>
@@ -250,6 +253,7 @@ function DisplayPosition({ map }) {
 }
 
 export default function Home() {
+  const inputRef = useRef(null);
   const [text, setText] = useState(
     () =>
       loadText() ||
@@ -289,6 +293,13 @@ export default function Home() {
           i,
           name,
           position,
+          setSelection: () => {
+            const input = inputRef.current;
+            input.focus();
+            const lines = text.split("\n");
+            const to = lines.slice(0, i + 1).join("\n").length;
+            input.setSelectionRange(to - lines[i].length, to);
+          },
           setPosition: ({ lat, lng }) =>
             setText((text) =>
               text
@@ -343,9 +354,10 @@ export default function Home() {
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        {list.map(({ i, position, name, setPosition }) => (
+        {list.map(({ i, position, name, setPosition, setSelection }) => (
           <DraggableMarker
             key={i}
+            onOpen={setSelection}
             position={position}
             setPosition={setPosition}
           >
@@ -365,7 +377,9 @@ export default function Home() {
       <h2>Home</h2>
       {map ? <DisplayPosition map={map} /> : null}
       {displayMap}
-      <Editor onChange={setText}>{text}</Editor>
+      <Editor ref={inputRef} onChange={setText}>
+        {text}
+      </Editor>
     </div>
   );
 }
