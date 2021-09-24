@@ -20,6 +20,7 @@
     "history": "^5.0.1",
     "hoist-non-react-statics": "^3.3.2",
     "leaflet": "^1.7.1",
+    "pako": "^2.0.4",
     "process": "^0.11.10",
     "qrcode": "^1.4.4",
     "react": "^17.0.2",

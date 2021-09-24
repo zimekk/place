@@ -15,6 +15,7 @@ import { faCrosshairs } from "@fortawesome/free-solid-svg-icons";
 import { faMapMarkerAlt } from "@fortawesome/free-solid-svg-icons";
 import { MDXProvider } from "@mdx-js/react";
 import MDX from "@mdx-js/runtime";
+import pako from "pako";
 import qrcode from "qrcode";
 import cx from "classnames";
 import styles from "./styles.module.scss";
@@ -89,17 +90,33 @@ function Text({ children }: { children: string }) {
   );
 }
 
+// https://stackoverflow.com/questions/12710001/how-to-convert-uint8-array-to-base64-encoded-string
+// const encode = window.btoa;
+const encode = (text: string) =>
+  window.btoa(String.fromCharCode.apply(null, pako.deflate(text)));
+// const decode = window.atob;
+const decode = (compressed: string) =>
+  pako.inflate(
+    window
+      .atob(compressed)
+      .split("")
+      .map(function (c) {
+        return c.charCodeAt(0);
+      }),
+    { to: "string" }
+  );
+
 const loadText = () =>
   (([_path, hash]) => {
     try {
-      return decodeURIComponent(escape(atob(hash)));
+      return decodeURIComponent(escape(decode(hash)));
     } catch (e) {
       return "";
     }
   })(decodeURI(location.hash).match(/^#(.+)/) || []);
 
 const saveText = (text) =>
-  document.location.replace(`#${btoa(unescape(encodeURIComponent(text)))}`);
+  document.location.replace(`#${encode(unescape(encodeURIComponent(text)))}`);
 
 function Link({ children }) {
   const canvasRef = useRef(null);
