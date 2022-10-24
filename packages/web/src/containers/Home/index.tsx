@@ -36,20 +36,40 @@ const parseLine = (line: string, i = 0) =>
         }))(item)
       : null)(line.match(/^([0-9.]*),([0-9.]*)\|(.*)$/));
 
-const stringifyLine = ({ name, lat, lng }: {name: string;lat:number, lng:number}) =>
-  `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
+const stringifyLine = ({
+  name,
+  lat,
+  lng,
+}: {
+  name: string;
+  lat: number;
+  lng: number;
+}) => `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
 
-const Editor = forwardRef(({ children, editable, onChange }: {children: string; editable: boolean; onChange: (s:string) => void}, ref) => (
-  <div className={cx(styles.Editor, editable && styles.Editable)}>
-              {editable ? 
-    <textarea
-    ref={ref}
-    value={children}
-    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
-  />
-  : <pre>{children}</pre>}
-  </div>
-));
+const Editor = forwardRef(
+  (
+    {
+      children,
+      editable,
+      onChange,
+    }: { children: string; editable: boolean; onChange: (s: string) => void },
+    ref
+  ) => (
+    <div className={cx(styles.Editor, editable && styles.Editable)}>
+      {editable ? (
+        <textarea
+          ref={ref}
+          value={children}
+          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+            onChange(e.target.value)
+          }
+        />
+      ) : (
+        <pre>{children}</pre>
+      )}
+    </div>
+  )
+);
 
 // https://github.com/jxnblk/ok-mdx/blob/master/lib/App.js#L20
 // https://pl.reactjs.org/docs/error-boundaries.html
@@ -123,7 +143,7 @@ const loadText = () =>
 const saveText = (text: string) =>
   document.location.replace(`#${encode(unescape(encodeURIComponent(text)))}`);
 
-function Link({ children }: {children: string}) {
+function Link({ children }: { children: string }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -230,11 +250,22 @@ function MarkerControl({ onAddMarker }: { onAddMarker: Function }) {
   );
 }
 
-function DisplayPosition({ map, editable, setEditable }: {map: L.Map; editable: boolean; setEditable: Dispatch<SetStateAction<boolean>>}) {
+function DisplayPosition({
+  map,
+  editable,
+  setEditable,
+  setText,
+}: {
+  map: L.Map;
+  editable: boolean;
+  setEditable: Dispatch<SetStateAction<boolean>>;
+  setText: Dispatch<SetStateAction<string>>;
+}) {
   const [initial] = useState(() => ({
     position: map.getCenter(),
     zoom: map.getZoom(),
   }));
+  const [search, setSearch] = useState(() => "chmielna, warszawa");
   const [position, setPosition] = useState(map.getCenter());
 
   const onClick = useCallback(() => {
@@ -257,24 +288,53 @@ function DisplayPosition({ map, editable, setEditable }: {map: L.Map; editable: 
     };
   }, [map, onMove]);
 
+  const onSearch = useCallback(
+    (event) => {
+      event.preventDefault();
+      // https://nominatim.org/release-docs/develop/api/Search/
+      // https://nominatim.openstreetmap.org/ui/search.html
+      const url = new URL(`https://nominatim.openstreetmap.org/search`);
+      url.searchParams.set("q", search);
+      url.searchParams.set("format", "jsonv2");
+      fetch(url.toString())
+        .then((data) => data.json())
+        .then((json) =>
+          json.map(
+            ({ lat, lon, display_name }) => `${lat},${lon}|${display_name}`
+          )
+        )
+        .then((list) => {
+          setText((text) => [text, list[0]].join("\n"));
+          console.log(list.join("\n"));
+        });
+    },
+    [search]
+  );
+
   return (
     <div className={cx(styles.DisplayPosition)}>
-      latitude: {position.lat.toFixed(4)}, longitude: {position.lng.toFixed(4)}{" "}
-      <button onClick={onClick}>Reset</button>
-      <button
-        onClick={() =>
-          map.locate({
-            setView: true,
-          })
-        }
-      >
-        Locate
-      </button>
-      <button
-        onClick={() => setEditable(editable => !editable)}
-      >
-        {editable ? 'Ok': 'Edit'}
-      </button>
+      <form onSubmit={onSearch}>
+        <input
+          type="search"
+          value={search}
+          onChange={useCallback(({ target }) => setSearch(target.value), [])}
+        />
+        <button type="submit">Search</button>
+        latitude: {position.lat.toFixed(4)}, longitude:{" "}
+        {position.lng.toFixed(4)} <button onClick={onClick}>Reset</button>
+        <button
+          onClick={() =>
+            map.locate({
+              setView: true,
+            })
+          }
+        >
+          Locate
+        </button>
+        <button onClick={() => setEditable((editable) => !editable)}>
+          {editable ? "Ok" : "Edit"}
+        </button>
+      </form>
     </div>
   );
 }
@@ -297,9 +357,7 @@ export default function Home() {
         }),
       ].join("\n")
   );
-  const [editable, setEditable] = useState(
-    () => false
-  );
+  const [editable, setEditable] = useState(() => false);
 
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
   useEffect(() => {
@@ -404,11 +462,18 @@ export default function Home() {
   // https://react-leaflet.js.org/docs/start-setup/
   return (
     <div className={cx(styles.Layout)}>
-      {map ? <DisplayPosition map={map} editable={editable} setEditable={setEditable}/> : null}
+      {map ? (
+        <DisplayPosition
+          map={map}
+          editable={editable}
+          setEditable={setEditable}
+          setText={setText}
+        />
+      ) : null}
       {displayMap}
-            <Editor ref={inputRef} onChange={setText} editable={editable}>
-            {text}
-          </Editor>
+      <Editor ref={inputRef} onChange={setText} editable={editable}>
+        {text}
+      </Editor>
     </div>
   );
 }
