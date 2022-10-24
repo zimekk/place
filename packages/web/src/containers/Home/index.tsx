@@ -1,6 +1,8 @@
 import React, {
   Component,
+  Dispatch,
   Fragment,
+  SetStateAction,
   forwardRef,
   useCallback,
   useEffect,
@@ -37,13 +39,15 @@ const parseLine = (line: string, i = 0) =>
 const stringifyLine = ({ name, lat, lng }: {name: string;lat:number, lng:number}) =>
   `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
 
-const Editor = forwardRef(({ children, onChange }: {children: string; onChange: (s:string) => void}, ref) => (
-  <div className={cx(styles.Editor)}>
+const Editor = forwardRef(({ children, editable, onChange }: {children: string; editable: boolean; onChange: (s:string) => void}, ref) => (
+  <div className={cx(styles.Editor, editable && styles.Editable)}>
+              {editable ? 
     <textarea
-      ref={ref}
-      value={children}
-      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
-    />
+    ref={ref}
+    value={children}
+    onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
+  />
+  : <pre>{children}</pre>}
   </div>
 ));
 
@@ -226,7 +230,7 @@ function MarkerControl({ onAddMarker }: { onAddMarker: Function }) {
   );
 }
 
-function DisplayPosition({ map }: {map: L.Map}) {
+function DisplayPosition({ map, editable, setEditable }: {map: L.Map; editable: boolean; setEditable: Dispatch<SetStateAction<boolean>>}) {
   const [initial] = useState(() => ({
     position: map.getCenter(),
     zoom: map.getZoom(),
@@ -266,6 +270,11 @@ function DisplayPosition({ map }: {map: L.Map}) {
       >
         Locate
       </button>
+      <button
+        onClick={() => setEditable(editable => !editable)}
+      >
+        {editable ? 'Ok': 'Edit'}
+      </button>
     </div>
   );
 }
@@ -287,6 +296,9 @@ export default function Home() {
           lng: 20.9954,
         }),
       ].join("\n")
+  );
+  const [editable, setEditable] = useState(
+    () => false
   );
 
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
@@ -392,12 +404,11 @@ export default function Home() {
   // https://react-leaflet.js.org/docs/start-setup/
   return (
     <div className={cx(styles.Layout)}>
-      <h2>Home</h2>
-      {map ? <DisplayPosition map={map} /> : null}
+      {map ? <DisplayPosition map={map} editable={editable} setEditable={setEditable}/> : null}
       {displayMap}
-      <Editor ref={inputRef} onChange={setText}>
-        {text}
-      </Editor>
+            <Editor ref={inputRef} onChange={setText} editable={editable}>
+            {text}
+          </Editor>
     </div>
   );
 }

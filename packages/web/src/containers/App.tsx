@@ -37,7 +37,6 @@ function App() {
             {page}
           </a>
         ))}
-        [{page}]
       </h1>
       <Suspense fallback={<Spinner />}>
         <Demo />
