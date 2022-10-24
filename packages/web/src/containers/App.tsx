@@ -25,7 +25,7 @@ function App() {
   //   )
   // );
 
-  const page = Object.keys(PAGES)[0];
+  const page = Object.keys(PAGES)[0] as keyof typeof PAGES;
   const Demo = PAGES[page] || null;
 
   return (

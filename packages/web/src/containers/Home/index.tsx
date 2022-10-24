@@ -7,8 +7,9 @@ import React, {
   useMemo,
   useRef,
   useState,
+  ChangeEvent,
 } from "react";
-import L from "leaflet";
+import L, { LatLng } from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCrosshairs } from "@fortawesome/free-solid-svg-icons";
@@ -20,10 +21,10 @@ import qrcode from "qrcode";
 import cx from "classnames";
 import styles from "./styles.module.scss";
 
-const getUrl = ({ lat, lng }) =>
+const getUrl = ({ lat, lng }: L.LatLng) =>
   `https://google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
-const parseLine = (line, i) =>
+const parseLine = (line: string, i = 0) =>
   ((item) =>
     item
       ? (([_, lat, lng, name]) => ({
@@ -33,15 +34,15 @@ const parseLine = (line, i) =>
         }))(item)
       : null)(line.match(/^([0-9.]*),([0-9.]*)\|(.*)$/));
 
-const stringifyLine = ({ name, lat, lng }) =>
+const stringifyLine = ({ name, lat, lng }: {name: string;lat:number, lng:number}) =>
   `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
 
-const Editor = forwardRef(({ children, onChange }, ref) => (
+const Editor = forwardRef(({ children, onChange }: {children: string; onChange: (s:string) => void}, ref) => (
   <div className={cx(styles.Editor)}>
     <textarea
       ref={ref}
       value={children}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e: ChangeEvent<HTMLTextAreaElement>) => onChange(e.target.value)}
     />
   </div>
 ));
@@ -115,10 +116,10 @@ const loadText = () =>
     }
   })(decodeURI(location.hash).match(/^#(.+)/) || []);
 
-const saveText = (text) =>
+const saveText = (text: string) =>
   document.location.replace(`#${encode(unescape(encodeURIComponent(text)))}`);
 
-function Link({ children }) {
+function Link({ children }: {children: string}) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
@@ -139,12 +140,12 @@ function Link({ children }) {
 }
 
 function DraggableMarker({ position, children, onOpen, setPosition }) {
-  const markerRef = useRef(null);
+  const markerRef = useRef<L.Marker>(null);
   const eventHandlers = useMemo(
     () => ({
       dragend() {
         const marker = markerRef.current;
-        if (marker != null) {
+        if (marker !== null) {
           setPosition(marker.getLatLng());
         }
       },
@@ -225,7 +226,7 @@ function MarkerControl({ onAddMarker }: { onAddMarker: Function }) {
   );
 }
 
-function DisplayPosition({ map }) {
+function DisplayPosition({ map }: {map: L.Map}) {
   const [initial] = useState(() => ({
     position: map.getCenter(),
     zoom: map.getZoom(),
@@ -317,7 +318,7 @@ export default function Home() {
             const to = lines.slice(0, i + 1).join("\n").length;
             input.setSelectionRange(to - lines[i].length, to);
           },
-          setPosition: ({ lat, lng }) =>
+          setPosition: ({ lat, lng }: LatLng) =>
             setText((text) =>
               text
                 .split("\n")
