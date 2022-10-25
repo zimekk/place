@@ -2,6 +2,7 @@ import React, {
   Component,
   Dispatch,
   Fragment,
+  ReactNode,
   SetStateAction,
   forwardRef,
   useCallback,
@@ -10,6 +11,9 @@ import React, {
   useRef,
   useState,
   ChangeEvent,
+  MouseEventHandler,
+  FormEventHandler,
+  ChangeEventHandler,
 } from "react";
 import L, { LatLng } from "leaflet";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
@@ -49,39 +53,33 @@ const stringifyLine = ({
   lng: number;
 }) => `${lat.toFixed(4)},${lng.toFixed(4)}|${name}`;
 
-const Editor = forwardRef(
-  (
-    {
-      children,
-      editable,
-      onChange,
-    }: { children: string; editable: boolean; onChange: (s: string) => void },
-    ref
-  ) => (
-    <div className={cx(styles.Editor, editable && styles.Editable)}>
-      {editable ? (
-        <textarea
-          ref={ref}
-          value={children}
-          onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
-            onChange(e.target.value)
-          }
-        />
-      ) : (
-        <pre>{children}</pre>
-      )}
-    </div>
-  )
-);
+const Editor = forwardRef<
+  HTMLTextAreaElement,
+  { children: string; editable: boolean; onChange: (s: string) => void }
+>(({ children, editable, onChange }, ref) => (
+  <div className={cx(styles.Editor, editable && styles.Editable)}>
+    {editable ? (
+      <textarea
+        ref={ref}
+        value={children}
+        onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+          onChange(e.target.value)
+        }
+      />
+    ) : (
+      <pre>{children}</pre>
+    )}
+  </div>
+));
 
 // https://github.com/jxnblk/ok-mdx/blob/master/lib/App.js#L20
 // https://pl.reactjs.org/docs/error-boundaries.html
-class ErrorBoundary extends Component {
+class ErrorBoundary extends Component<{ children: ReactNode }> {
   state = {
     error: null,
   };
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error) {
     return { error };
   }
 
@@ -128,9 +126,7 @@ const decode = (compressed: string) =>
     window
       .atob(compressed)
       .split("")
-      .map(function (c) {
-        return c.charCodeAt(0);
-      }),
+      .map((c) => c.charCodeAt(0)),
     { to: "string" }
   );
 
@@ -171,7 +167,17 @@ function Link({ children }: { children: string }) {
   );
 }
 
-function DraggableMarker({ position, children, onOpen, setPosition }) {
+function DraggableMarker({
+  position,
+  children,
+  onOpen,
+  setPosition,
+}: {
+  position: L.LatLng;
+  children: string;
+  onOpen: L.PopupEventHandlerFn;
+  setPosition: Function;
+}) {
   const markerRef = useRef<L.Marker>(null);
   const eventHandlers = useMemo(
     () => ({
@@ -181,6 +187,7 @@ function DraggableMarker({ position, children, onOpen, setPosition }) {
           setPosition(marker.getLatLng());
         }
       },
+      popupopen: onOpen,
     }),
     []
   );
@@ -192,7 +199,7 @@ function DraggableMarker({ position, children, onOpen, setPosition }) {
       position={position}
       ref={markerRef}
     >
-      <Popup minWidth={132} maxWidth={132} onOpen={onOpen}>
+      <Popup minWidth={132} maxWidth={132}>
         <span>
           <Text>{children}</Text>
           <Link>{getUrl(position)}</Link>
@@ -205,7 +212,7 @@ function DraggableMarker({ position, children, onOpen, setPosition }) {
 function LocateControl() {
   const map = useMap();
 
-  const onLocate = useCallback(
+  const onLocate = useCallback<MouseEventHandler>(
     (event) => {
       event.preventDefault();
       map.locate({
@@ -234,7 +241,7 @@ function LocateControl() {
 function MarkerControl({ onAddMarker }: { onAddMarker: Function }) {
   const map = useMap();
 
-  const onClick = useCallback(
+  const onClick = useCallback<MouseEventHandler>(
     (event) => {
       event.preventDefault();
       onAddMarker(map.getCenter());
@@ -312,7 +319,7 @@ function DisplayPosition({
     setPosition(map.getCenter());
   }, [map]);
 
-  const onLocationFound = useCallback((event) => {
+  const onLocationFound = useCallback((event: any) => {
     const { latlng, radius } = event;
     console.log({ latlng, radius });
   }, []);
@@ -324,7 +331,7 @@ function DisplayPosition({
     };
   }, [map, onMove]);
 
-  const onSearch = useCallback(
+  const onSearch = useCallback<FormEventHandler>(
     (event) => {
       event.preventDefault();
       getSearchResults(search)
@@ -354,7 +361,10 @@ function DisplayPosition({
         <input
           type="search"
           value={search}
-          onChange={useCallback(({ target }) => setSearch(target.value), [])}
+          onChange={useCallback<ChangeEventHandler<HTMLInputElement>>(
+            ({ target }) => setSearch(target.value),
+            []
+          )}
         />
         <button type="submit">Search</button>
         latitude: {position.lat.toFixed(4)}, longitude:{" "}
@@ -392,7 +402,7 @@ function MapCreated({ setMap }: { setMap: Dispatch<SetStateAction<any>> }) {
 }
 
 export default function Home() {
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState(
     () =>
       loadText() ||
@@ -413,7 +423,7 @@ export default function Home() {
 
   // https://stackoverflow.com/questions/40719689/how-to-include-leaflet-css-in-a-react-app-with-webpack
   useEffect(() => {
-    delete L.Icon.Default.prototype._getIconUrl;
+    // delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png").default,
       iconUrl: require("leaflet/dist/images/marker-icon.png").default,
@@ -434,8 +444,8 @@ export default function Home() {
           name,
           position,
           setSelection: () => {
-            if (editable) {
-              const input = inputRef.current;
+            const input = inputRef.current;
+            if (input) {
               input.focus();
               const lines = text.split(NL);
               const to = lines.slice(0, i + 1).join(NL).length;
@@ -456,7 +466,7 @@ export default function Home() {
                 .join(NL)
             ),
         })),
-    [text, editable]
+    [text]
   );
 
   const bounds = useMemo(
@@ -470,7 +480,7 @@ export default function Home() {
   const [map, setMap] = useState(null);
 
   const onAddMarker = useCallback(
-    ({ lat, lng }) => {
+    ({ lat, lng }: L.LatLng) => {
       setText((text) =>
         stringifyLine({
           name: `lat: ${lat}, lng: ${lng}`,
