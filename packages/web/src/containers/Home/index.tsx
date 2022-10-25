@@ -150,17 +150,22 @@ function Link({ children }: { children: string }) {
   const canvasRef = useRef(null);
 
   useEffect(() => {
-    qrcode.toCanvas(canvasRef.current, children, function (error) {
-      if (error) {
-        console.error(error);
+    qrcode.toCanvas(
+      canvasRef.current,
+      children,
+      { margin: 0, scale: 4 },
+      function (error) {
+        if (error) {
+          console.error(error);
+        }
       }
-    });
+    );
   });
 
   return (
     <div>
       <a href={children} target="_blank" style={{ textDecoration: "none" }}>
-        <canvas ref={canvasRef} width="100" height="100"></canvas>
+        <canvas ref={canvasRef} width="132" height="132"></canvas>
       </a>
     </div>
   );
@@ -187,7 +192,7 @@ function DraggableMarker({ position, children, onOpen, setPosition }) {
       position={position}
       ref={markerRef}
     >
-      <Popup minWidth={90} onOpen={onOpen}>
+      <Popup minWidth={132} maxWidth={132} onOpen={onOpen}>
         <span>
           <Text>{children}</Text>
           <Link>{getUrl(position)}</Link>
