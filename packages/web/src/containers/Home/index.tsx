@@ -383,6 +383,14 @@ function DisplayPosition({
   );
 }
 
+function MapCreated({ setMap }: { setMap: Dispatch<SetStateAction<any>> }) {
+  const map = useMap();
+  useEffect(() => {
+    setMap(map);
+  }, [map]);
+  return null;
+}
+
 export default function Home() {
   const inputRef = useRef(null);
   const [text, setText] = useState(
@@ -478,12 +486,8 @@ export default function Home() {
 
   const displayMap = useMemo(
     () => (
-      <MapContainer
-        bounds={bounds}
-        whenCreated={setMap}
-        zoom={13}
-        className={cx(styles.Map)}
-      >
+      <MapContainer bounds={bounds} zoom={13} className={cx(styles.Map)}>
+        <MapCreated setMap={setMap} />
         <TileLayer
           attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
