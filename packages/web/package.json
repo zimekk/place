@@ -30,7 +30,8 @@
     "redux": "^4.2.0",
     "redux-actions": "^2.6.5",
     "redux-devtools-extension": "^2.13.9",
-    "redux-thunk": "^2.4.1"
+    "redux-thunk": "^2.4.1",
+    "zod": "^3.19.1"
   },
   "devDependencies": {
     "@babel/core": "^7.19.6",

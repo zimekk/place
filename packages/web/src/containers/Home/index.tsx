@@ -16,12 +16,15 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCrosshairs } from "@fortawesome/free-solid-svg-icons";
 import { faMapMarkerAlt } from "@fortawesome/free-solid-svg-icons";
+import { z } from "zod";
 import { MDXProvider } from "@mdx-js/react";
 import MDX from "@mdx-js/runtime";
 import pako from "pako";
 import qrcode from "qrcode";
 import cx from "classnames";
 import styles from "./styles.module.scss";
+
+const NL = "\n";
 
 const getUrl = ({ lat, lng }: L.LatLng) =>
   `https://google.com/maps/dir/?api=1&destination=${lat},${lng}`;
@@ -250,6 +253,34 @@ function MarkerControl({ onAddMarker }: { onAddMarker: Function }) {
   );
 }
 
+const SearchResultsSchema = z
+  .object({
+    lat: z.string(),
+    lon: z.string(),
+    display_name: z.string(),
+  })
+  .array();
+
+const cache: Record<string, z.infer<typeof SearchResultsSchema>> = {};
+
+const getSearchResults = (search: string) =>
+  search in cache
+    ? Promise.resolve(cache[search])
+    : ((url) => {
+        // https://nominatim.org/release-docs/develop/api/Search/
+        // https://nominatim.openstreetmap.org/ui/search.html
+        url.searchParams.set("q", search);
+        url.searchParams.set("format", "jsonv2");
+        console.log(["fetch"]);
+        return fetch(url.toString())
+          .then((data) => data.json())
+          .then((json) => SearchResultsSchema.parseAsync(json))
+          .then((json) => {
+            cache[search] = json;
+            return json;
+          });
+      })(new URL(`https://nominatim.openstreetmap.org/search`));
+
 function DisplayPosition({
   map,
   editable,
@@ -291,21 +322,22 @@ function DisplayPosition({
   const onSearch = useCallback(
     (event) => {
       event.preventDefault();
-      // https://nominatim.org/release-docs/develop/api/Search/
-      // https://nominatim.openstreetmap.org/ui/search.html
-      const url = new URL(`https://nominatim.openstreetmap.org/search`);
-      url.searchParams.set("q", search);
-      url.searchParams.set("format", "jsonv2");
-      fetch(url.toString())
-        .then((data) => data.json())
+      getSearchResults(search)
         .then((json) =>
           json.map(
             ({ lat, lon, display_name }) => `${lat},${lon}|${display_name}`
           )
         )
         .then((list) => {
-          setText((text) => [text, list[0]].join("\n"));
-          console.log(list.join("\n"));
+          setText((text) => {
+            const line = list[0];
+            const lines = text.split(NL);
+            if (lines.includes(line)) {
+              return text;
+            }
+            console.log(lines.concat(line).join(NL));
+            return lines.concat(line).join(NL);
+          });
         });
     },
     [search]
@@ -321,8 +353,12 @@ function DisplayPosition({
         />
         <button type="submit">Search</button>
         latitude: {position.lat.toFixed(4)}, longitude:{" "}
-        {position.lng.toFixed(4)} <button onClick={onClick}>Reset</button>
+        {position.lng.toFixed(4)}{" "}
+        <button type="button" onClick={onClick}>
+          Reset
+        </button>
         <button
+          type="button"
           onClick={() =>
             map.locate({
               setView: true,
@@ -331,7 +367,10 @@ function DisplayPosition({
         >
           Locate
         </button>
-        <button onClick={() => setEditable((editable) => !editable)}>
+        <button
+          type="button"
+          onClick={() => setEditable((editable) => !editable)}
+        >
           {editable ? "Ok" : "Edit"}
         </button>
       </form>
@@ -355,7 +394,7 @@ export default function Home() {
           lat: 52.228,
           lng: 20.9954,
         }),
-      ].join("\n")
+      ].join(NL)
   );
   const [editable, setEditable] = useState(() => false);
 
@@ -374,7 +413,7 @@ export default function Home() {
   const list = useMemo(
     () =>
       text
-        .split("\n")
+        .split(NL)
         .map(parseLine)
         .filter(Boolean)
         .map(({ i, name, position }) => ({
@@ -382,16 +421,18 @@ export default function Home() {
           name,
           position,
           setSelection: () => {
-            const input = inputRef.current;
-            input.focus();
-            const lines = text.split("\n");
-            const to = lines.slice(0, i + 1).join("\n").length;
-            input.setSelectionRange(to - lines[i].length, to);
+            if (editable) {
+              const input = inputRef.current;
+              input.focus();
+              const lines = text.split(NL);
+              const to = lines.slice(0, i + 1).join(NL).length;
+              input.setSelectionRange(to - lines[i].length, to);
+            }
           },
           setPosition: ({ lat, lng }: LatLng) =>
             setText((text) =>
               text
-                .split("\n")
+                .split(NL)
                 .map((line, index) =>
                   i === index
                     ? (({ name }) => stringifyLine({ name, lat, lng }))(
@@ -399,10 +440,10 @@ export default function Home() {
                       )
                     : line
                 )
-                .join("\n")
+                .join(NL)
             ),
         })),
-    [text]
+    [text, editable]
   );
 
   const bounds = useMemo(
@@ -423,7 +464,7 @@ export default function Home() {
           lat,
           lng,
         })
-          .concat("\n")
+          .concat(NL)
           .concat(text)
       );
     },
